@@ -38,6 +38,7 @@ function h(tag, attrs = {}, ...filhos) {
   return e;
 }
 const mostra = (...nos) => { $main.replaceChildren(...nos.flat().filter(Boolean)); };
+const poe = (pai, ...nos) => pai.append(...nos.flat().filter((x) => x != null && x !== false));
 const data = (ms) => (ms ? new Date(ms).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 const msgErro = (e) => (e && e.code === 'permission-denied' ? 'Sem permissão para esta operação.' : (e && e.message) || String(e));
 
@@ -199,7 +200,7 @@ function tabPerguntas(corpo) {
         probs.has(p.id) ? h('span', { class: 'selo erro', title: probs.get(p.id).join('\n') }, 'Problema') : null,
         avis.has(p.id) ? h('span', { class: 'selo lar', title: avis.get(p.id).join('\n') }, 'Aviso') : null));
   });
-  corpo.append(h('div', { class: 'barra' }, pesquisa, filtro, h('button', { class: 'pri', onclick: () => editar(null) }, 'Nova pergunta'), h('button', { onclick: exportar }, 'Exportar')),
+  poe(corpo, h('div', { class: 'barra' }, pesquisa, filtro, h('button', { class: 'pri', onclick: () => editar(null) }, 'Nova pergunta'), h('button', { onclick: exportar }, 'Exportar')),
     h('table', {}, h('thead', {}, h('tr', {}, h('th', {}, 'N.º'), h('th', {}, 'Pergunta e resposta certa'), h('th', {}, 'Estado'))),
       h('tbody', {}, linhas.length ? linhas : h('tr', {}, h('td', { colspan: 3, class: 'nota' }, 'Nenhuma pergunta encontrada.')))),
     h('div', { class: 'pag' }, h('button', { disabled: S.pagina === 0, onclick: () => { S.pagina--; desenhar(); } }, '‹ Anterior'),
@@ -264,11 +265,11 @@ async function tabPublicar(corpo) {
     try {
       const r = await ocupado(bt, () => core.publicar(fs, S.app, utilizador, nota.value.trim()));
       await abrirApp(S.app, 'publicar');
-      $main.append(h('div', { class: 'ok' }, `Versão ${r.versao} publicada com ${r.total} perguntas.`));
+      poe($main, h('div', { class: 'ok' }, `Versão ${r.versao} publicada com ${r.total} perguntas.`));
     } catch (e) { res.replaceChildren(h('div', { class: 'erro' }, msgErro(e))); }
   } }, `Publicar ${ativas} perguntas`);
   const versoes = h('div', { class: 'nota' }, 'A carregar…');
-  corpo.append(
+  poe(corpo, 
     probs.length ? h('div', { class: 'erro' }, h('strong', {}, `${probs.length} problema(s) impedem a publicação:`), listaDe(probs)) : h('div', { class: 'ok' }, 'Sem problemas: pode publicar.'),
     avis.length ? h('div', { class: 'aviso' }, h('strong', {}, `${avis.length} aviso(s) (não impedem a publicação):`), listaDe(avis)) : null,
     h('div', { class: 'cartao' }, h('h2', {}, 'O que vai mudar'), dif, h('label', {}, 'Nota'), nota, h('div', { class: 'acoes' }, bt), res),
@@ -293,7 +294,7 @@ async function tabPublicar(corpo) {
 }
 
 async function tabHistorico(corpo) {
-  corpo.append(h('p', { class: 'nota', style: 'margin-top:14px' }, 'A carregar…'));
+  poe(corpo, h('p', { class: 'nota', style: 'margin-top:14px' }, 'A carregar…'));
   try { S.hist = S.hist || await core.historico(fs, S.app); } catch (e) { return corpo.replaceChildren(h('div', { class: 'erro' }, msgErro(e))); }
   const nomes = { editar: 'Editou', criar: 'Criou', importar: 'Carregou a base inicial', publicar: 'Publicou', repor: 'Repôs' };
   const detalhe = (x) => {
