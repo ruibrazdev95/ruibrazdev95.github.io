@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Grupo SD — Backoffice das apps</title>
+<style>
+  :root { --verde:#34AC88; --verde-esc:#268468; --laranja:#FB8C00; --fundo:#f4f6f5; --cartao:#fff; --texto:#1d2a26; --suave:#5f6f6a; --linha:#dfe6e3; --erro:#c62828; --aviso:#a15c00; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--fundo); color:var(--texto); }
+  header { background:var(--verde); color:#fff; padding:12px 20px; display:flex; align-items:center; gap:16px; }
+  header h1 { font-size:18px; margin:0; font-weight:600; flex:1; }
+  header .quem { font-size:13px; opacity:.95; }
+  main { max-width:1100px; margin:0 auto; padding:20px; }
+  button { font:inherit; border:1px solid var(--linha); background:#fff; color:var(--texto); padding:7px 14px; border-radius:8px; cursor:pointer; }
+  button:hover { border-color:var(--verde); }
+  button.pri { background:var(--verde); border-color:var(--verde); color:#fff; font-weight:600; }
+  button.pri:hover { background:var(--verde-esc); }
+  button.lar { background:var(--laranja); border-color:var(--laranja); color:#fff; font-weight:600; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  header button { background:transparent; color:#fff; border-color:rgba(255,255,255,.6); }
+  .cartoes { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+  .cartao { background:var(--cartao); border:1px solid var(--linha); border-radius:12px; padding:16px; }
+  .cartao.app { cursor:pointer; }
+  .cartao.app:hover { border-color:var(--verde); }
+  .cartao h2 { font-size:16px; margin:0 0 6px; }
+  .cartao .num { font-size:13px; color:var(--suave); }
+  .selo { display:inline-block; font-size:12px; padding:2px 8px; border-radius:99px; background:#e6f4ef; color:var(--verde-esc); font-weight:600; }
+  .selo.lar { background:#fff1dc; color:var(--aviso); }
+  .selo.erro { background:#fde7e7; color:var(--erro); }
+  .selo.cinza { background:#eceff1; color:var(--suave); }
+  .barra { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:14px 0; }
+  .barra input[type=search] { flex:1; min-width:220px; padding:8px 12px; border:1px solid var(--linha); border-radius:8px; font:inherit; }
+  .barra select { padding:8px; border:1px solid var(--linha); border-radius:8px; font:inherit; background:#fff; }
+  .tabs { display:flex; gap:4px; border-bottom:1px solid var(--linha); margin:16px 0 0; }
+  .tabs button { border:none; border-bottom:3px solid transparent; border-radius:0; background:none; padding:9px 14px; color:var(--suave); }
+  .tabs button.ativo { color:var(--texto); border-bottom-color:var(--verde); font-weight:600; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--linha); border-radius:12px; overflow:hidden; }
+  td, th { text-align:left; padding:9px 12px; border-bottom:1px solid var(--linha); vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--suave); background:#fafbfb; }
+  tr.linha { cursor:pointer; } tr.linha:hover { background:#f6fbf9; }
+  tr.inativa td { color:#9aa5a1; }
+  td.id { width:64px; color:var(--suave); font-variant-numeric:tabular-nums; }
+  .certa { color:var(--verde-esc); font-size:13px; }
+  .nota { color:var(--suave); font-size:13px; }
+  .aviso { background:#fff8ec; border:1px solid #f3d7a6; color:var(--aviso); padding:10px 14px; border-radius:10px; margin:12px 0; }
+  .erro { background:#fdecec; border:1px solid #f1b8b8; color:var(--erro); padding:10px 14px; border-radius:10px; margin:12px 0; }
+  .ok { background:#e9f6f1; border:1px solid #b9e0d2; color:var(--verde-esc); padding:10px 14px; border-radius:10px; margin:12px 0; }
+  dialog { border:none; border-radius:14px; padding:0; width:min(720px,94vw); box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  dialog::backdrop { background:rgba(20,30,27,.45); }
+  dialog form { padding:20px; }
+  dialog h3 { margin:0 0 12px; }
+  label { display:block; font-size:13px; color:var(--suave); margin:12px 0 4px; }
+  textarea, input[type=text], input[type=email] { width:100%; padding:9px 11px; border:1px solid var(--linha); border-radius:8px; font:inherit; resize:vertical; }
+  .resp { display:flex; gap:10px; align-items:flex-start; margin:8px 0; }
+  .resp input[type=radio] { margin-top:12px; width:18px; height:18px; accent-color:var(--verde); }
+  .resp textarea { flex:1; }
+  .acoes { display:flex; gap:10px; justify-content:flex-end; margin-top:18px; align-items:center; }
+  .acoes .esq { margin-right:auto; display:flex; align-items:center; gap:8px; font-size:14px; }
+  .centro { text-align:center; padding:60px 20px; }
+  .pag { display:flex; gap:10px; align-items:center; justify-content:center; margin:14px 0; color:var(--suave); font-size:13px; }
+  ul.limpa { list-style:none; padding:0; margin:0; }
+  ul.limpa li { padding:8px 0; border-bottom:1px solid var(--linha); }
+  a { color:var(--verde-esc); }
+  .demo { background:var(--laranja); color:#fff; text-align:center; padding:6px; font-size:13px; font-weight:600; }
+</style>
+</head>
+<body>
+<div id="demo" class="demo" hidden>Modo de demonstração: nada do que fizer aqui é guardado nem chega às apps.</div>
+<header>
+  <h1 id="titulo">Grupo SD — Backoffice das apps</h1>
+  <span class="quem" id="quem"></span>
+  <button id="sair" hidden>Sair</button>
+</header>
+<main id="main"><div class="centro">A carregar…</div></main>
+<dialog id="dlg"></dialog>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
