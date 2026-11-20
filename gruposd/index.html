@@ -64,6 +64,32 @@
   ul.limpa li { padding:8px 0; border-bottom:1px solid var(--linha); }
   a { color:var(--verde-esc); }
   .demo { background:var(--laranja); color:#fff; text-align:center; padding:6px; font-size:13px; font-weight:600; }
+  dialog.largo { width:min(1080px,96vw); }
+  button.perigo { color:var(--erro); }
+  button.perigo:hover { border-color:var(--erro); }
+  td.cx, th.cx { width:36px; padding-right:0; }
+  td.cx input, th.cx input { width:17px; height:17px; accent-color:var(--verde); cursor:pointer; }
+  tr.marcada { background:#f1faf6; }
+  .selbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:#e9f6f1; border:1px solid #b9e0d2; border-radius:10px; padding:8px 12px; margin:0 0 12px; position:sticky; top:6px; z-index:2; }
+  .selbar strong { margin-right:6px; }
+  .mais { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 0; }
+  .mais button { padding:5px 11px; font-size:13px; }
+  ins { background:#d6f1e3; text-decoration:none; border-radius:3px; padding:0 2px; }
+  del { background:#fde0e0; color:#8e2020; border-radius:3px; padding:0 2px; }
+  .grelha { display:grid; gap:12px; align-items:start; }
+  .cartao.comp { padding:12px; }
+  .cartao.comp.inativa { opacity:.7; }
+  .cartao.comp h4 { margin:0 0 6px; font-size:14px; }
+  .cartao.comp .ptxt { margin:0 0 8px; }
+  ul.resps li { padding:6px 6px; font-size:14px; border-radius:6px; border-bottom:none; }
+  ul.resps li.c { color:var(--verde-esc); font-weight:600; }
+  ul.resps li.dif { background:#fff5d6; }
+  ul.resps .marca { display:inline-block; width:16px; }
+  .resumo { margin:0 0 6px; }
+  li.grupo { display:flex; gap:14px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+  li.grupo .gtxt { flex:1; min-width:260px; }
+  li.grupo .mais { margin:0; }
+  @media (max-width:760px) { .grelha { grid-template-columns:1fr !important; } }
 </style>
 </head>
 <body>
@@ -75,6 +101,6 @@
 </header>
 <main id="main"><div class="centro">A carregar…</div></main>
 <dialog id="dlg"></dialog>
-<script type="module" src="js/app.js?v=2"></script>
+<script type="module" src="js/app.js?v=3"></script>
 </body>
 </html>

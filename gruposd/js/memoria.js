@@ -26,9 +26,11 @@ export const fsMemoria = {
   query: (c, ...mods) => ({ ...c, mods }),
   orderBy: (campo, dir = 'asc') => ({ campo, dir }),
   limit: (lim) => ({ lim }),
+  where: (campoW, _op, valor) => ({ campoW, valor }),
   getDocs: async (q) => {
     let docs = [...dados.keys()].filter((k) => k.startsWith(q.col + '/') && !k.slice(q.col.length + 1).includes('/')).map((k) => snap(ref(k)));
     for (const m of q.mods || []) {
+      if (m.campoW) docs = docs.filter((d) => d.data()[m.campoW] === m.valor);
       if (m.campo) docs.sort((a, b) => (a.data()[m.campo] - b.data()[m.campo]) * (m.dir === 'desc' ? -1 : 1));
       if (m.lim) docs = docs.slice(0, m.lim);
     }

@@ -266,4 +266,205 @@ export function diferencas(rascunho, publicadas) {
   return out;
 }
 
+// ---------- comparar, duplicados e alterações em conjunto ----------
+
+/** Texto reduzido ao essencial para comparar: sem acentos, sem pontuação, sem maiúsculas. */
+export const chave = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+const parDe = (a, b) => (a < b ? `${a}-${b}` : `${b}-${a}`);
+const assinatura = (p) => (p.r || []).map((r) => `${r.c ? '1' : '0'}${chave(r.t)}`).sort().join('|');
+const certaDe = (p) => (p.r || []).filter((r) => r.c).map((r) => chave(r.t)).sort().join('|');
+
+/** Semelhança entre dois textos, de 0 a 1 (palavras em comum). */
+export function semelhanca(a, b) {
+  const x = chave(a).split(' ').filter(Boolean);
+  const y = chave(b).split(' ').filter(Boolean);
+  if (!x.length || !y.length) return 0;
+  const conta = new Map();
+  for (const w of x) conta.set(w, (conta.get(w) || 0) + 1);
+  let comuns = 0;
+  for (const w of y) { const n = conta.get(w) || 0; if (n > 0) { comuns++; conta.set(w, n - 1); } }
+  return (2 * comuns) / (x.length + y.length);
+}
+
+function componentes(ids, arestas) {
+  const pai = new Map(ids.map((i) => [i, i]));
+  const raiz = (i) => { while (pai.get(i) !== i) { pai.set(i, pai.get(pai.get(i))); i = pai.get(i); } return i; };
+  for (const [a, b] of arestas) pai.set(raiz(a), raiz(b));
+  const g = new Map();
+  for (const i of ids) { const r = raiz(i); g.set(r, [...(g.get(r) || []), i]); }
+  return [...g.values()].filter((v) => v.length > 1).map((v) => v.sort((a, b) => a - b));
+}
+
+/**
+ * Procura perguntas ativas repetidas.
+ * Devolve { grupos: [{ tipo, ids }], respostasRepetidas: [id] }.
+ *   tipo 'iguais'          — mesmo texto e mesmas respostas (a mesma certa)
+ *   tipo 'mesma_certa'     — mesmo texto e mesma resposta certa, respostas erradas diferentes
+ *   tipo 'certa_diferente' — mesmo texto mas resposta certa diferente
+ *   tipo 'parecidas'       — texto quase igual (só com opcoes.parecidas)
+ * `ignorados` são pares "a-b" já marcados como perguntas diferentes.
+ */
+export function duplicados(perguntas, ignorados = [], opcoes = {}) {
+  const ign = new Set(ignorados);
+  const ativas = perguntas.filter((p) => p.ativa !== false);
+  const porId = new Map(ativas.map((p) => [p.id, p]));
+  const porChave = new Map();
+  for (const p of ativas) { const k = chave(p.t); if (k) porChave.set(k, [...(porChave.get(k) || []), p.id]); }
+  const grupos = [];
+  for (const ids of porChave.values()) {
+    if (ids.length < 2) continue;
+    const arestas = [];
+    for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) if (!ign.has(parDe(ids[i], ids[j]))) arestas.push([ids[i], ids[j]]);
+    for (const g of componentes(ids, arestas)) {
+      const ps = g.map((i) => porId.get(i));
+      const tipo = new Set(ps.map(assinatura)).size === 1 ? 'iguais' : (new Set(ps.map(certaDe)).size === 1 ? 'mesma_certa' : 'certa_diferente');
+      grupos.push({ tipo, ids: g });
+    }
+  }
+  if (opcoes.parecidas) {
+    const limiar = opcoes.limiar ?? 0.85;
+    const lista = ativas.map((p) => ({ id: p.id, k: chave(p.t), n: chave(p.t).split(' ').length })).filter((x) => x.n >= 4);
+    const arestas = [];
+    for (let i = 0; i < lista.length; i++) {
+      for (let j = i + 1; j < lista.length; j++) {
+        const a = lista[i]; const b = lista[j];
+        if (a.k === b.k || ign.has(parDe(a.id, b.id))) continue;
+        if ((2 * Math.min(a.n, b.n)) / (a.n + b.n) < limiar) continue;   // nem com todas as palavras em comum lá chegava
+        if (semelhanca(a.k, b.k) >= limiar) arestas.push([a.id, b.id]);
+      }
+    }
+    for (const g of componentes(lista.map((x) => x.id), arestas)) grupos.push({ tipo: 'parecidas', ids: g });
+  }
+  const respostasRepetidas = ativas.filter((p) => { const t = (p.r || []).map((r) => chave(r.t)); return new Set(t).size !== t.length; }).map((p) => p.id);
+  grupos.sort((a, b) => a.ids[0] - b.ids[0]);
+  return { grupos, respostasRepetidas };
+}
+
+/** Diferenças palavra a palavra entre dois textos: [{ t, tipo }] com tipo '=', '+' (só no segundo) ou '-' (só no primeiro). */
+export function difPalavras(a, b) {
+  const x = limpa(a).split(' ').filter(Boolean);
+  const y = limpa(b).split(' ').filter(Boolean);
+  const m = Array.from({ length: x.length + 1 }, () => new Uint16Array(y.length + 1));
+  for (let i = x.length - 1; i >= 0; i--) for (let j = y.length - 1; j >= 0; j--) m[i][j] = x[i] === y[j] ? m[i + 1][j + 1] + 1 : Math.max(m[i + 1][j], m[i][j + 1]);
+  const out = [];
+  const poe = (t, tipo) => { const u = out[out.length - 1]; if (u && u.tipo === tipo) u.t += ' ' + t; else out.push({ t, tipo }); };
+  let i = 0; let j = 0;
+  while (i < x.length && j < y.length) {
+    if (x[i] === y[j]) { poe(x[i], '='); i++; j++; } else if (m[i + 1][j] >= m[i][j + 1]) poe(x[i++], '-'); else poe(y[j++], '+');
+  }
+  while (i < x.length) poe(x[i++], '-');
+  while (j < y.length) poe(y[j++], '+');
+  return out;
+}
+
+/**
+ * Prepara um "localizar e substituir" sem gravar nada. Devolve as perguntas que mudariam: [{ id, antes, depois, vezes }].
+ * onde: 'tudo' | 'perguntas' | 'respostas'. Só mexe em perguntas ativas, a não ser que opcoes.inativas seja true.
+ */
+export function substituir(perguntas, de, para, opcoes = {}) {
+  if (!de) return [];
+  const onde = opcoes.onde || 'tudo';
+  const re = new RegExp(de.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), opcoes.maiusculas === false ? 'gi' : 'g');
+  const out = [];
+  for (const p of perguntas) {
+    if (p.ativa === false && !opcoes.inativas) continue;
+    let vezes = 0;
+    const troca = (s) => s.replace(re, () => { vezes++; return para; });
+    const antes = normalizar(p);
+    const depois = normalizar({ ...antes, t: onde === 'respostas' ? antes.t : troca(antes.t), r: antes.r.map((r) => ({ ...r, t: onde === 'perguntas' ? r.t : troca(r.t) })) });
+    if (vezes && JSON.stringify(antes) !== JSON.stringify(depois)) out.push({ id: p.id, antes, depois, vezes });
+  }
+  return out;
+}
+
+export const MAX_POR_LOTE = 150;
+
+/**
+ * Altera várias perguntas de uma vez, numa só transação (no máximo MAX_POR_LOTE; use alterarEmLotes para mais).
+ * Cada operação é uma de:
+ *   { id, ativa: true|false }   ativa ou desativa
+ *   { id, apagar: true }        tira a pergunta do rascunho (fica no histórico, de onde pode ser reposta)
+ *   { id, por: pergunta }       substitui o conteúdo; se a pergunta já não existir, volta a criá-la com o mesmo número
+ * `tipo` (opcional) é o nome que fica no histórico em vez do habitual.
+ */
+export async function alterarVarias(fs, app, ops, quem, tipo = null) {
+  if (ops.length > MAX_POR_LOTE) throw new Error(`No máximo ${MAX_POR_LOTE} perguntas de cada vez.`);
+  return fs.runTransaction(fs.db, async (tx) => {
+    const m = await tx.get(refApp(fs, app));
+    if (!m.exists()) throw new Error('Esta app ainda não tem base carregada.');
+    const meta = m.data();
+    const blocos = [];
+    for (let i = 0; i < meta.blocos; i++) { const b = await tx.get(refBloco(fs, app, i)); blocos.push(b.exists() ? [...b.data().perguntas] : []); }
+    const mexidos = new Set();
+    const registos = [];
+    for (const op of ops) {
+      const id = Number(op.id);
+      let b = blocos.findIndex((l) => l.some((x) => x.id === id));
+      const i = b < 0 ? -1 : blocos[b].findIndex((x) => x.id === id);
+      const antes = i < 0 ? null : blocos[b][i];
+      let depois;
+      let nome;
+      if (op.apagar) {
+        if (!antes) continue;
+        blocos[b].splice(i, 1); depois = null; nome = 'apagar'; meta.total -= 1;
+      } else if (op.por) {
+        depois = { ...normalizar(op.por), id };
+        if (antes) { blocos[b][i] = depois; nome = 'editar'; } else {
+          b = blocos.length - 1;
+          if (b < 0 || blocos[b].length >= TAM_BLOCO) { blocos.push([]); b = blocos.length - 1; }
+          blocos[b].push(depois); nome = 'repor'; meta.total += 1;
+          meta.maxId = Math.max(meta.maxId, id);
+          meta.maxRespId = Math.max(meta.maxRespId, ...depois.r.map((r) => r.id));
+        }
+      } else {
+        if (!antes) continue;
+        depois = { ...antes, ativa: !!op.ativa }; blocos[b][i] = depois; nome = op.ativa ? 'ativar' : 'desativar';
+      }
+      if (antes && depois && JSON.stringify(antes) === JSON.stringify(depois)) continue;
+      mexidos.add(b);
+      registos.push({ tipo: tipo || nome, id, antes, depois });
+    }
+    if (!registos.length) return { feitas: 0 };
+    meta.blocos = blocos.length;
+    meta.alteradoEm = Date.now();
+    meta.alteradoPor = quem;
+    for (const b of mexidos) tx.set(refBloco(fs, app, b), { perguntas: blocos[b] });
+    tx.set(refApp(fs, app), meta);
+    for (const r of registos) tx.set(fs.doc(colHist(fs, app)), { quando: meta.alteradoEm, quem, ...r });
+    return { feitas: registos.length };
+  });
+}
+
+export async function alterarEmLotes(fs, app, ops, quem, tipo = null) {
+  let feitas = 0;
+  for (let i = 0; i < ops.length; i += MAX_POR_LOTE) feitas += (await alterarVarias(fs, app, ops.slice(i, i + MAX_POR_LOTE), quem, tipo)).feitas;
+  return { feitas };
+}
+
+/** Regista que estas perguntas, apesar de parecidas, são perguntas diferentes (deixam de aparecer nos duplicados). */
+export async function marcarDiferentes(fs, app, ids) {
+  return fs.runTransaction(fs.db, async (tx) => {
+    const m = await tx.get(refApp(fs, app));
+    const meta = m.data();
+    const s = new Set(meta.naoDuplicados || []);
+    for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) s.add(parDe(ids[i], ids[j]));
+    meta.naoDuplicados = [...s];
+    tx.set(refApp(fs, app), meta);
+    return meta;
+  });
+}
+
+/** Histórico de uma pergunta (mais recente primeiro). */
+export async function historicoPergunta(fs, app, id) {
+  const s = await fs.getDocs(fs.query(colHist(fs, app), fs.where('id', '==', Number(id))));
+  return s.docs.map((d) => d.data()).sort((a, b) => b.quando - a.quando);
+}
+
+/** Últimas perguntas apagadas (para repor). */
+export async function apagadas(fs, app) {
+  const s = await fs.getDocs(fs.query(colHist(fs, app), fs.where('tipo', '==', 'apagar')));
+  return s.docs.map((d) => d.data()).sort((a, b) => b.quando - a.quando);
+}
+
 export { copia };
