@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sensling</title>
+<meta property="og:title" content="Sensling">
+<meta property="og:description" content="Can you beat my time?">
+<style>
+html,body{height:100%;margin:0}
+body{background:#0B0B0D;color:#EDE9E1;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;box-sizing:border-box}
+svg{width:132px;height:132px}
+h1{font-weight:300;font-size:26px;letter-spacing:.5px;margin:18px 0 6px}
+#time{font-weight:200;font-size:54px;letter-spacing:1px;margin:10px 0 4px;min-height:64px}
+p{color:#77736C;font-size:15px;line-height:22px;margin:4px 0 26px;max-width:340px}
+a.btn{display:inline-block;padding:14px 26px;border-radius:999px;background:#EDE9E1;color:#0B0B0D;text-decoration:none;font-weight:500;font-size:15px}
+a.alt{display:block;margin-top:16px;color:#77736C;font-size:13px}
+</style></head><body>
+<svg viewBox="0 0 100 100" fill="none" stroke="#EDE9E1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+<path d="M50 14c17-3 33 10 34 30 1 19-9 38-30 41-19 3-36-9-38-30-2-20 14-38 34-41z"/><circle cx="62" cy="40" r="3" fill="#EDE9E1" stroke="none"/></svg>
+<h1>Sensling</h1>
+<div id="time"></div>
+<p id="line">Can you beat my time?</p>
+<a class="btn" id="open" href="https://play.google.com/store/apps/details?id=com.rbdev.sensling">Play</a>
+<a class="alt" id="store" href="https://play.google.com/store/apps/details?id=com.rbdev.sensling">Google Play</a>
+<script>
+(function () {
+  // Tudo o que um desafio leva está no endereço: o enigma (ou o número do sinal do dia) e um tempo. Esta página não guarda nem envia nada.
+  var STORE = "https://play.google.com/store/apps/details?id=com.rbdev.sensling";
+  var TEXT = {
+    en: ["Can you beat my time?", "Play"], pt: ["Consegues bater o meu tempo?", "Jogar"], es: ["¿Puedes superar mi tiempo?", "Jugar"],
+    fr: ["Tu peux battre mon temps ?", "Jouer"], de: ["Schlägst du meine Zeit?", "Spielen"], it: ["Riesci a battere il mio tempo?", "Gioca"],
+    nl: ["Kun jij mijn tijd verslaan?", "Spelen"], pl: ["Pobijesz mój czas?", "Graj"], tr: ["Süremi geçebilir misin?", "Oyna"],
+    ru: ["Сможешь побить моё время?", "Играть"], id: ["Bisa kalahkan waktuku?", "Main"], ja: ["このタイムを超えられる？", "プレイ"], ko: ["내 기록을 깰 수 있을까?", "플레이"]
+  };
+  var lang = (navigator.language || "en").slice(0, 2).toLowerCase();
+  var t = TEXT[lang] || TEXT.en;
+  document.getElementById("line").textContent = t[0];
+  var open = document.getElementById("open");
+  open.textContent = t[1];
+
+  var q = new URLSearchParams(location.search);
+  var p = q.get("p"), d = q.get("d"), ms = parseInt(q.get("t"), 10);
+  var okTime = ms >= 1 && ms <= 3600000;
+  var query = null;
+  if (okTime && p && /^[blsef][1-6]$/.test(p)) query = "p=" + p + "&t=" + ms;
+  else if (okTime && d && /^[0-9]{1,6}$/.test(d)) query = "d=" + d + "&t=" + ms;
+
+  if (query) {
+    var cs = Math.floor(ms / 10), m = Math.floor(cs / 6000), s = Math.floor(cs / 100) % 60, c = cs % 100;
+    var two = function (n) { return (n < 10 ? "0" : "") + n; };
+    document.getElementById("time").textContent = (m > 0 ? m + ":" + two(s) : s) + "." + two(c);
+  }
+  if (/Android/i.test(navigator.userAgent)) {
+    // abre a app se estiver instalada; se não estiver, o próprio navegador segue para a loja
+    var intent = "intent://d" + (query ? "?" + query : "") + "#Intent;scheme=sensling;S.browser_fallback_url=" + encodeURIComponent(STORE) + ";end";
+    open.href = intent;
+    if (query) setTimeout(function () { location.href = intent; }, 350);
+  }
+})();
+</script>
+</body></html>
