@@ -3,6 +3,14 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
+      "package_name": "com.rbdev.sensling",
+      "sha256_cert_fingerprints": ["BE:10:BF:F4:50:F1:29:E5:57:C8:0A:5F:FF:A5:A2:00:6A:53:D9:45:A2:4F:ED:1D:16:31:A9:5D:26:63:B7:7F"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
       "package_name": "com.rbdev.sensling.debug",
       "sha256_cert_fingerprints": ["9C:62:85:A6:31:C4:97:74:D3:A0:68:43:94:6F:E0:C3:12:97:B6:F6:E9:A1:A3:93:4A:F5:22:E3:B1:27:B5:F1"]
     }
